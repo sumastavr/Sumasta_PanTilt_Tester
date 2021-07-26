@@ -1,0 +1,156 @@
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <style>
+    body {
+      text-align: center;
+      font-family: "Trebuchet MS", Arial;
+      margin-left:auto;
+      margin-right:auto;
+      
+    }
+    .slider {
+	  -webkit-appearance: none;
+	  width: 300px;
+	  height: 25px;
+	  border-radius: 10px;  
+	  background: #ffffff;
+	  outline: none;
+	  opacity: 0.9;
+	  -webkit-transition: .2s;
+	  transition: opacity .2s;
+	}
+	
+	.slider::-webkit-slider-thumb {
+	  -webkit-appearance: none;
+	  appearance: none;
+	  width: 35px;
+	  height: 35px;
+	  border-radius: 50%; 
+	  background: #80ed99;
+	  cursor: pointer;
+	}
+	
+	.slider:hover {
+	  opacity: 1;
+	}
+	
+	.button {
+	  padding: 15px 23px;
+	  font-size: 18px;
+	  text-align: center;
+	  cursor: pointer;
+	  outline: none;
+	  color: #fff;
+	  background-color: #04AA6D;
+	  border: none;
+	  border-radius: 15px;
+	  box-shadow: 0 9px #999;
+	  margin-left: 15px;
+	  margin-right: 15px;
+	  
+	}
+
+	.button:hover {background-color: #80ed99}
+
+	.button:active {
+	  background-color: #3e8e41;
+	  box-shadow: 0 5px #666;
+	  transform: translateY(4px);
+	}
+    
+  </style>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+</head>
+<body style="background-color:#22577a;">
+  <h1 style="color:#80ed99;">Pan-Tilt Controller</h1>
+  
+  <h2 style="color:#ffffff;">Pan: <span id="servoPos"></span>&#176;</h2>
+  <input type="range" min="0" max="180" class="slider" id="servoSlider" onchange="servo(this.value)"/>
+  
+  <h2 style="color:#ffffff;">Tilt: <span id="servoPos2"></span>&#176;</h2>
+  <input type="range" min="20" max="170" class="slider" id="servoSlider2" onchange="servo2(this.value)"/>
+  
+  <h2 style="color:#ffffff;">Speed: <span id="speed"></span></h2>
+  <input type="range" min="0" max="100" class="slider" id="speedSlider" onchange="speed(this.value)"/>
+  <br>
+  <br>
+  <br>
+  <input type="button" class="button" value="Sweep Pan" id="butSweepPan">
+  <input type="button" class="button" value="Sweep Tilt" id="butSweepTilt">
+  <br>
+  <br>
+  <h2 style="color:#ffffff;">Status:<span id="status"></span></h2>
+  <h2 style="font-size: 15px; color:#80ed99; ">V1.1 (26-07-21) P.Sumasta<span id="status"></span></h2>
+  
+  <script>
+    var slider = document.getElementById("servoSlider");
+    var servoP = document.getElementById("servoPos");
+    servoP.innerHTML = slider.value;
+    
+    var slider2 = document.getElementById("servoSlider2");
+    var servoP2 = document.getElementById("servoPos2");
+    servoP2.innerHTML = slider2.value;
+    
+    var slider3 = document.getElementById("speedSlider");
+    var speedLabel = document.getElementById("speed");
+    speedLabel.innerHTML = slider3.value;
+    
+    var buttSweepPan = document.getElementById("butSweepPan");
+    var buttSweepTilt = document.getElementById("butSweepTilt");
+    var state = document.getElementById("status");
+    state.innerHTML = " Ready";	
+    
+    slider.oninput = function() {
+      slider.value = this.value;
+      servoP.innerHTML = this.value;
+      
+    }
+    
+    slider2.oninput = function() {
+      slider2.value = this.value;
+      servoP2.innerHTML = this.value;
+    }
+    
+    slider3.oninput = function() {
+      slider3.value = this.value;
+      speedLabel.innerHTML = this.value;
+    }
+    
+    buttSweepPan.onclick = function() {
+      //servoP2.innerHTML = buttSweepPan.value;
+      state.innerHTML = " Sweep Panning";
+      $.get("/?value=X");
+      {Connection: close};
+    }
+    
+    buttSweepTilt.onclick = function() {
+      //servoP2.innerHTML = buttSweepTilt.value;
+      state.innerHTML = " Sweep Tilting";
+      $.get("/?value=Y");
+      {Connection: close};
+    }
+      
+    $.ajaxSetup({timeout:1000});
+    function servo(pos) {
+      $.get("/?value=" + pos + "&");
+      {Connection: close};
+      state.innerHTML = " Panning to " + pos +"&#176";
+    }
+    
+    function servo2(pos) {
+      $.get("/?value=" + pos + "&");
+      {Connection: close};
+      state.innerHTML = " Tilting to " + pos +"&#176";
+    }
+    
+    function speed(pos) {
+      $.get("/?value=" + pos + "&");
+      {Connection: close};
+      state.innerHTML = " Speed changed to " + pos ;
+    }
+    
+  </script>
+</body>
+</html>
