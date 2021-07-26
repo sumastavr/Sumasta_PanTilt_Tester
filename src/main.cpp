@@ -3,6 +3,9 @@
 #include <WiFi.h>
 #include <ESP32Servo.h>
 
+// SW Version
+String SWVersion = "V1.10 (26-07-21) P.Sumasta";
+
 Servo myservoPan;  // create servo object to control a servo pan
 Servo myservoTilt;  // create servo object to control a servo pan
 
@@ -21,12 +24,18 @@ WiFiServer server(80);
 String header;
 
 // Decode HTTP GET value
-String valueString = String(5);
+String valueString = String(90);
 int pos1 = 0;
 int pos2 = 0;
 
-int currentPan=5;
-int currentTilt=5;
+int currentPan=90;
+int currentTilt=90;
+
+static const int minTilting = 20;
+static const int maxTilting = 160;
+
+static const int minPanning = 0;
+static const int maxPanning = 180;
 
 int moveSpeed=20;
 
@@ -51,12 +60,18 @@ void setup() {
   
   // Attach to servo and define minimum and maximum positions
   // Modify as required
-  myservoPan.attach(servoPanPin,500, 2400);
-  myservoTilt.attach(servoTiltPin,500, 2400);
+  myservoPan.attach(servoPanPin,500, 2500);
+  myservoTilt.attach(servoTiltPin,500, 2250);
 
   // Start serial
   Serial.begin(115200);
   delay(1000);
+
+  for(int i=0;i<10;i++){
+    myservoPan.write(currentPan);
+    myservoTilt.write(currentTilt);
+    delay(100);
+  }
 
   // Connect to Wi-Fi network with SSID and password
   Serial.print("Setting AP (Access Point)…");
@@ -115,46 +130,73 @@ void loop(){
             
             // CSS - Modify as desired
             client.println("<style>body { text-align: center; font-family: \"Trebuchet MS\", Arial; margin-left:auto; margin-right:auto; }");
-            client.println(".slider { -webkit-appearance: none; width: 300px; height: 25px; border-radius: 10px; background: #ffffff; outline: none;  opacity: 0.7;-webkit-transition: .2s;  transition: opacity .2s;}");
-            client.println(".slider::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 35px; height: 35px; border-radius: 50%; background: #ff3410; cursor: pointer; }</style>");
-            
+            client.println(".slider { -webkit-appearance: none; width: 300px; height: 25px; border-radius: 10px; background: #ffffff; outline: none;  opacity: 0.9;-webkit-transition: .2s;  transition: opacity .2s;}");
+            client.println(".slider::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 35px; height: 35px; border-radius: 50%; background: #80ed99; cursor: pointer; }");
+            client.println(".slider:hover{opacity: 1;}");
+
+            client.println(".button { padding: 15px 23px; font-size: 18px; text-align: center; cursor: pointer; outline: none; color: #fff; background-color: #04AA6D; border: none; border-radius: 15px; box-shadow: 0 9px #999; margin-left: 15px; margin-right: 15px;}");
+            client.println(".button:hover {background-color: #80ed99}");
+            client.println(".button:active { background-color: #3e8e41; box-shadow: 0 5px #666; transform: translateY(4px); } </style>");
+
             // Get JQuery
             client.println("<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js\"></script>");
                      
             // Page title
-            client.println("</head><body style=\"background-color:#70cfff;\"><h1 style=\"color:#ff3410;\">Pan-Tilt Controller</h1>");
+            client.println("</head><body style=\"background-color:#22577a;\"><h1 style=\"color:#80ed99;\">Pan-Tilt Controller</h1>");
             
             // Sliders and Position display
             client.println("<h2 style=\"color:#ffffff;\">Pan: <span id=\"servoPos\"></span>&#176;</h2>"); 
             client.println("<input type=\"range\" min=\"0\" max=\"180\" class=\"slider\" id=\"servoSlider\" onchange=\"servo(this.value)\" value=\""+valueString+"\"/>");            
             client.println("<h2 style=\"color:#ffffff;\">Tilt: <span id=\"servoPos2\"></span>&#176;</h2>"); 
-            client.println("<input type=\"range\" min=\"0\" max=\"180\" class=\"slider\" id=\"servoSlider2\" onchange=\"servo2(this.value)\" value=\""+valueString+"\"/>");
+            client.println("<input type=\"range\" min=\""+ String(minTilting)+"\" max=\""+String(maxTilting)+"\" class=\"slider\" id=\"servoSlider2\" onchange=\"servo2(this.value)\" value=\""+valueString+"\"/>");
             
-            //client.println("<h2 style=\"color:#ffffff;\">Speed: <span id=\"speedPos\"></span></h2>"); 
-            //client.println("<input type=\"range\" min=\"0\" max=\"100\" class=\"slider\" id=\"speedSlider\" onchange=\"speed(this.value)\" value=\""+valueString+"\"/>");
+            client.println("<h2 style=\"color:#ffffff;\">Speed: <span id=\"speedPos\"></span></h2>"); 
+            client.println("<input type=\"range\" min=\"0\" max=\"100\" class=\"slider\" id=\"speedSlider\" onchange=\"speed(this.value)\" value=\""+String(moveSpeed)+"\"/>");
             
+            client.println("<br><br><br>");
+            client.println("<input type=\"button\" class=\"button\" id=\"butSweepPan\" value=\"Sweep Pan\"/>");
+            client.println("<input type=\"button\" class=\"button\" id=\"butSweepTilt\" value=\"Sweep Tilt\"/>");
+            
+            
+            client.println("<br><br>");
+            client.println("<h2 style=\"color:#ffffff;\">Status: <span id=\"status\"></span></h2>");
+            client.println("<h2 style=\"color:#80ed99; font-size: 15px;\">"+SWVersion+ "<span id=\"Versioning\"></span></h2>");
 
             // Javascript
             client.println("<script>var slider = document.getElementById(\"servoSlider\");");            
             client.println("var servoP = document.getElementById(\"servoPos\"); servoP.innerHTML = slider.value;");            
-            client.println("slider.oninput = function() { slider.value = this.value; servoP.innerHTML = this.value; }");                                
+                                           
 
             client.println("var slider2 = document.getElementById(\"servoSlider2\");");
             client.println("var servoP2 = document.getElementById(\"servoPos2\"); servoP2.innerHTML = slider2.value;");
-            client.println("slider2.oninput = function() { slider2.value = this.value; servoP2.innerHTML = this.value; }");
-/*
+            
             client.println("var slider3 = document.getElementById(\"speedSlider\");");
             client.println("var speedSlider = document.getElementById(\"speedPos\"); speedSlider.innerHTML = slider3.value;");
+            
+            client.println("var buttSweepPan = document.getElementById(\"butSweepPan\");");
+            client.println("var buttSweepTilt = document.getElementById(\"butSweepTilt\");");
+            client.println("var state = document.getElementById(\"status\");");
+            client.println("state.innerHTML = \" Ready\";");
+
+            client.println("slider.oninput = function() { slider.value = this.value; servoP.innerHTML = this.value; }"); 
+            client.println("slider2.oninput = function() { slider2.value = this.value; servoP2.innerHTML = this.value; }");
             client.println("slider3.oninput = function() { slider3.value = this.value; speedSlider.innerHTML = this.value; }");
 
+            client.println("buttSweepPan.onclick = function() { state.innerHTML = \" Sweep Panning\"; $.get(\"/?value=X\"); {Connection: close};}");
+            client.println("buttSweepTilt.onclick = function() { state.innerHTML = \" Sweep Tilting\"; $.get(\"/?value=Y\"); {Connection: close};}");
+
             client.println("$.ajaxSetup({timeout:1000}); function speed(pos) { ");
-            client.println("$.get(\"/?value=\" +\"S\" +pos + \"&\"); {Connection: close};}");
-*/
-            client.println("$.ajaxSetup({timeout:1000}); function servo(pos) { ");
-            client.println("$.get(\"/?value=\" +\"P\"+pos + \"&\"); {Connection: close};}");
+            client.println("$.get(\"/?value=\" +\"S\" +pos + \"&\"); {Connection: close};");
+            client.println("state.innerHTML = \" Speed changed to \" + pos ;}");
+
+            client.println("function servo(pos) { ");
+            client.println("$.get(\"/?value=\" +\"P\"+pos + \"&\"); {Connection: close};");
+            client.println("state.innerHTML = \" Panning to \" + pos + \"&#176\";}");
 
             client.println("function servo2(pos) { ");
-            client.println("$.get(\"/?value=\" +\"T\"+pos + \"&\"); {Connection: close};}</script>");
+            client.println("$.get(\"/?value=\" +\"T\"+pos + \"&\"); {Connection: close};");
+            client.println("state.innerHTML = \" Tilting to \" + pos + \"&#176\";}");
+            client.println("</script>");
             
             // End page
             client.println("</body></html>");     
@@ -197,6 +239,7 @@ void loop(){
                 Serial.println(valueString.toInt());
                 
                 int panValue=valueString.toInt();
+                panValue=180-panValue; // reverse direction
 
                 if(panValue>currentPan){
                   for(int i=currentPan;i<panValue;i++){
@@ -216,6 +259,42 @@ void loop(){
                 Serial.print("SPEED:");
                 moveSpeed=valueString.toInt();
                 Serial.println(moveSpeed);
+              }else if(valueString.charAt(0)=='X'){
+                Serial.println("Sweep Panning Started");
+
+                for(int i=currentPan;i<maxPanning;i++){
+                  myservoPan.write(i);
+                  delay(moveSpeed);
+                }
+
+                for(int i=maxPanning;i>minPanning;i--){
+                  myservoPan.write(i);
+                  delay(moveSpeed);
+                }
+
+                for(int i=minPanning;i<currentPan;i++){
+                  myservoPan.write(i);
+                  delay(moveSpeed);
+                }
+                Serial.println("Sweep Panning Finished");
+              }else if(valueString.charAt(0)=='Y'){
+                Serial.println("Sweep Tilting Started");
+
+                for(int i=currentTilt;i<maxTilting;i++){
+                  myservoTilt.write(i);
+                  delay(moveSpeed);
+                }
+
+                for(int i=maxTilting;i>minTilting;i--){
+                  myservoTilt.write(i);
+                  delay(moveSpeed);
+                }
+
+                for(int i=minTilting;i<currentTilt;i++){
+                  myservoTilt.write(i);
+                  delay(moveSpeed);
+                }
+                Serial.println("Sweep Tilting Finished");
               }
 
             }         
