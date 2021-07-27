@@ -4,7 +4,7 @@
 #include <ESP32Servo.h>
 
 // SW Version
-String SWVersion = "V1.10 (26-07-21) P.Sumasta";
+String SWVersion = "V1.11 (26-07-21) P.Sumasta";
 
 Servo myservoPan;  // create servo object to control a servo pan
 Servo myservoTilt;  // create servo object to control a servo pan
@@ -60,7 +60,7 @@ void setup() {
   
   // Attach to servo and define minimum and maximum positions
   // Modify as required
-  myservoPan.attach(servoPanPin,500, 2500);
+  myservoPan.attach(servoPanPin,550, 2500);
   myservoTilt.attach(servoTiltPin,500, 2250);
 
   // Start serial
