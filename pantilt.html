@@ -13,7 +13,7 @@
     .slider {
 	  -webkit-appearance: none;
 	  width: 300px;
-	  height: 25px;
+	  height: 15px;
 	  border-radius: 10px;  
 	  background: #ffffff;
 	  outline: none;
@@ -67,13 +67,15 @@
   <h1 style="color:#80ed99;">Pan-Tilt Controller</h1>
   
   <h2 style="color:#ffffff;">Pan: <span id="servoPos"></span>&#176;</h2>
-  <input style= "background-color: #e0c00b; padding: 5px 5px; margin-left: 1px; margin-right: 1px;" type="button" class="button" value="--" id="decrPan">
+  <input style= " padding: 5px 5px; margin-left: 1px; margin-right: 1px; margin-top: 0px;" type="button" class="button" value="--" id="decrPan">
   <input type="range" min="0" max="180" class="slider" id="servoSlider" onchange="servo(this.value)"/>
-  <input style= "background-color: #e0c00b; padding: 5px 5px; margin-left: 1px; margin-right: 1px;" type="button" class="button" value="+" id="incrPan">
+  <input style= " padding: 5px 5px; margin-left: 1px; margin-right: 1px; margin-top: 0px;" type="button" class="button" value="+" id="incrPan">
   
   <h2 style="color:#ffffff;">Tilt: <span id="servoPos2"></span>&#176;</h2>
+  <input style= " padding: 5px 5px; margin-left: 1px; margin-right: 1px; margin-top: 0px;" type="button" class="button" value="--" id="decrTilt">
   <input type="range" min="20" max="170" class="slider" id="servoSlider2" onchange="servo2(this.value)"/>
-  
+  <input style= " padding: 5px 5px; margin-left: 1px; margin-right: 1px; margin-top: 0px;" type="button" class="button" value="+" id="incrTilt">
+
   <h2 style="color:#ffffff;">Speed: <span id="speed"></span></h2>
   <input type="range" min="0" max="100" class="slider" id="speedSlider" onchange="speed(this.value)"/>
 
@@ -116,6 +118,9 @@
 
     var buttIncrPan = document.getElementById("incrPan");
     var buttDecrPan = document.getElementById("decrPan");
+
+    var buttIncrTilt = document.getElementById("incrTilt");
+    var buttDecrTilt = document.getElementById("decrTilt");
     
     slider.oninput = function() {
       slider.value = this.value;
@@ -164,7 +169,23 @@
       state.innerHTML = " Decrement Pan Angle";
       slider.value = parseInt(slider.value)-1;
       servoP.innerHTML = slider.value;
-      $.get("/?value=F");
+      $.get("/?value=D");
+      {Connection: close};
+    }
+
+    buttIncrTilt.onclick = function() {
+      state.innerHTML = " Increment Tilt Angle";
+      slider2.value = parseInt(slider2.value)+1;
+      servoP2.innerHTML = slider2.value;
+      $.get("/?value=J");
+      {Connection: close};
+    }
+
+    buttDecrTilt.onclick = function() {
+      state.innerHTML = " Decrement Tilt Angle";
+      slider2.value = parseInt(slider2.value)-1;
+      servoP2.innerHTML = slider2.value;
+      $.get("/?value=E");
       {Connection: close};
     }
       
