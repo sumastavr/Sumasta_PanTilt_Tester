@@ -1,14 +1,10 @@
-#include <Arduino.h>
+#include <sumastaConfig.h>
 
 #include <WiFi.h>
-
 #include <PololuMaestro.h>
 #include <SoftwareSerial.h>
 
-// SW Version
-String SWVersion = "V1.11 (26-07-21) P.Sumasta";
-
-// Servo GPIO pin
+// Servo GPIO pin on pololu maestro micro controller
 static const int servoPanPin = 0;
 static const int servoTiltPin = 1;
 
@@ -64,33 +60,18 @@ SoftwareSerial maestroSerial;
 
 MiniMaestro maestro(maestroSerial);
 
-
-// 0 = 2440 -> 180 = 440
-
 void setup() {
 
-      // Important: the buffer size optimizations here, in particular the isrBufSize (11) that is only sufficiently
-    // large to hold a single word (up to start - 8 data - parity - stop), are on the basis that any char written
-    // to the loopback SoftwareSerial adapter gets read before another write is performed.
-    // Block writes with a size greater than 1 would usually fail. Do not copy this into your own project without
-    // reading the documentation.
-    maestroSerial.begin(9600, SWSERIAL_8N1, 17, 18, false, 95, 11);
-  //maestroSerial.begin(9600);
+  // Important: the buffer size optimizations here, in particular the isrBufSize (11) that is only sufficiently
+  // large to hold a single word (up to start - 8 data - parity - stop), are on the basis that any char written
+  // to the loopback SoftwareSerial adapter gets read before another write is performed.
+  // Block writes with a size greater than 1 would usually fail. Do not copy this into your own project without
+  // reading the documentation.
+  maestroSerial.begin(9600, SWSERIAL_8N1, 17, 18, false, 95, 11);
 
-//testPololu();
+  //testPololu();
 
-  maestro.setSpeed(servoPanPin, moveSpeed);
-  maestro.setSpeed(servoTiltPin, moveSpeed);
-
-  maestro.setAcceleration(servoPanPin, 1);
-  maestro.setAcceleration(servoTiltPin, 1);
-  int usServoValue=map(90,0,180,minUsServo,maxUsServo);
-  usServoValue*=4;
-  maestro.setTarget(servoPanPin, usServoValue);
-  maestro.setTarget(servoTiltPin, usServoValue);
-  delay(1000);
-  maestro.setAcceleration(servoPanPin, acceleration);
-  maestro.setAcceleration(servoTiltPin, acceleration);
+  initServo();
 
   // Start serial
   Serial.begin(115200);
@@ -108,8 +89,6 @@ void setup() {
   
   server.begin();
 }
-
-
 
 void loop(){
   
@@ -364,9 +343,6 @@ void loop(){
       timeTag2=millis();
     }
   }
-
-
-
 }
 
 void testPololu(){
@@ -405,4 +381,31 @@ void testPololu(){
   delay(2000);
 
   }
+}
+
+void initServo(){
+
+  maestro.setSpeed(servoPanPin, moveSpeed);
+  maestro.setSpeed(servoTiltPin, moveSpeed);
+  maestro.setAcceleration(servoPanPin, 1);
+  maestro.setAcceleration(servoTiltPin, 1);
+
+  maestro.setTarget(servoPanPin, getUsServo(90));
+  maestro.setTarget(servoTiltPin, getUsServo(90));
+
+  delay(3000);
+
+  maestro.setAcceleration(servoPanPin, acceleration);
+  maestro.setAcceleration(servoTiltPin, acceleration);
+
+}
+
+int getServoDelay(){
+
+}
+
+int getUsServo(int targetAngle){
+  int usServoValue=map(targetAngle,0,180,minUsServo,maxUsServo);
+  usServoValue*=4;
+  return usServoValue;
 }
