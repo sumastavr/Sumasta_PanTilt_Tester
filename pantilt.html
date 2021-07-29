@@ -67,7 +67,9 @@
   <h1 style="color:#80ed99;">Pan-Tilt Controller</h1>
   
   <h2 style="color:#ffffff;">Pan: <span id="servoPos"></span>&#176;</h2>
+  <input style= "background-color: #e0c00b; padding: 5px 5px; margin-left: 1px; margin-right: 1px;" type="button" class="button" value="--" id="decrPan">
   <input type="range" min="0" max="180" class="slider" id="servoSlider" onchange="servo(this.value)"/>
+  <input style= "background-color: #e0c00b; padding: 5px 5px; margin-left: 1px; margin-right: 1px;" type="button" class="button" value="+" id="incrPan">
   
   <h2 style="color:#ffffff;">Tilt: <span id="servoPos2"></span>&#176;</h2>
   <input type="range" min="20" max="170" class="slider" id="servoSlider2" onchange="servo2(this.value)"/>
@@ -76,7 +78,7 @@
   <input type="range" min="0" max="100" class="slider" id="speedSlider" onchange="speed(this.value)"/>
 
   <h2 style="color:#ffffff;">Acceleration: <span id="accel"></span></h2>
-  <input type="range" min="0" max="100" class="slider" id="accelSlider" onchange="accel(this.value)"/>
+  <input type="range" min="0" max="10" class="slider" id="accelSlider" onchange="accel(this.value)"/>
 
   <br>
   <br>
@@ -87,6 +89,8 @@
   <br>
   <h2 style="color:#ffffff;">Status:<span id="status"></span></h2>
   <h2 style="font-size: 15px; color:#80ed99; ">V1.1 (26-07-21) P.Sumasta<span id="status"></span></h2>
+
+  
   
   <script>
     var slider = document.getElementById("servoSlider");
@@ -109,6 +113,9 @@
     var buttSweepTilt = document.getElementById("butSweepTilt");
     var state = document.getElementById("status");
     state.innerHTML = " Ready";	
+
+    var buttIncrPan = document.getElementById("incrPan");
+    var buttDecrPan = document.getElementById("decrPan");
     
     slider.oninput = function() {
       slider.value = this.value;
@@ -142,6 +149,22 @@
       //servoP2.innerHTML = buttSweepTilt.value;
       state.innerHTML = " Sweep Tilting";
       $.get("/?value=Y");
+      {Connection: close};
+    }
+
+    buttIncrPan.onclick = function() {
+      state.innerHTML = " Increment Pan Angle";
+      slider.value = parseInt(slider.value)+1;
+      servoP.innerHTML = slider.value;
+      $.get("/?value=I");
+      {Connection: close};
+    }
+
+    buttDecrPan.onclick = function() {
+      state.innerHTML = " Decrement Pan Angle";
+      slider.value = parseInt(slider.value)-1;
+      servoP.innerHTML = slider.value;
+      $.get("/?value=F");
       {Connection: close};
     }
       

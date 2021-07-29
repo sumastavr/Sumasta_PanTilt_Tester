@@ -32,7 +32,7 @@ static const int maxTilting = 155;
 static const int minPanning = 0;
 static const int maxPanning = 180;
 
-const int maxUsServo=2500;
+const int maxUsServo=2300;
 const int minUsServo=500;
 
 const int usPerDegree = 180/(maxUsServo-minUsServo);
@@ -402,6 +402,7 @@ void initServo(){
 
 int getServoDelay(){
 
+  return 0;
 }
 
 int getUsServo(int targetAngle){
