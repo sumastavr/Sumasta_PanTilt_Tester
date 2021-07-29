@@ -1,17 +1,16 @@
 #include <Arduino.h>
 
 #include <WiFi.h>
-#include <ESP32Servo.h>
+
+#include <PololuMaestro.h>
+#include <SoftwareSerial.h>
 
 // SW Version
 String SWVersion = "V1.11 (26-07-21) P.Sumasta";
 
-Servo myservoPan;  // create servo object to control a servo pan
-Servo myservoTilt;  // create servo object to control a servo pan
-
 // Servo GPIO pin
-static const int servoPanPin = 23;
-static const int servoTiltPin = 32;
+static const int servoPanPin = 0;
+static const int servoTiltPin = 1;
 
 // Network credentials
 const char* ssid     = "Sumasta-PanTilt";
@@ -31,13 +30,28 @@ int pos2 = 0;
 int currentPan=90;
 int currentTilt=90;
 
-static const int minTilting = 20;
-static const int maxTilting = 160;
+static const int minTilting = 15;
+static const int maxTilting = 155;
 
 static const int minPanning = 0;
 static const int maxPanning = 180;
 
-int moveSpeed=20;
+const int maxUsServo=2500;
+const int minUsServo=500;
+
+const int usPerDegree = 180/(maxUsServo-minUsServo);
+const int midValuePan=1400; 
+
+int moveSpeed=30;
+int acceleration=0;
+
+boolean panSweeping=false;
+boolean tiltSweeping=false;
+boolean panningUp=false;
+boolean tiltingUp=false;
+
+long timeTag=millis();
+long timeTag2=millis();
 
 // Current time
 unsigned long currentTime = millis();
@@ -46,32 +60,41 @@ unsigned long previousTime = 0;
 // Define timeout time in milliseconds (example: 2000ms = 2s)
 const long timeoutTime = 2000;
 
+SoftwareSerial maestroSerial;
+
+MiniMaestro maestro(maestroSerial);
+
+
+// 0 = 2440 -> 180 = 440
+
 void setup() {
-  
-  // Allow allocation of all timers for servo library
-  ESP32PWM::allocateTimer(0);
-  ESP32PWM::allocateTimer(1);
-  ESP32PWM::allocateTimer(2);
-  ESP32PWM::allocateTimer(3);
-  
-  // Set servo PWM frequency to 50Hz
-  myservoPan.setPeriodHertz(50);
-  myservoTilt.setPeriodHertz(60);
-  
-  // Attach to servo and define minimum and maximum positions
-  // Modify as required
-  myservoPan.attach(servoPanPin,550, 2500);
-  myservoTilt.attach(servoTiltPin,500, 2250);
+
+      // Important: the buffer size optimizations here, in particular the isrBufSize (11) that is only sufficiently
+    // large to hold a single word (up to start - 8 data - parity - stop), are on the basis that any char written
+    // to the loopback SoftwareSerial adapter gets read before another write is performed.
+    // Block writes with a size greater than 1 would usually fail. Do not copy this into your own project without
+    // reading the documentation.
+    maestroSerial.begin(9600, SWSERIAL_8N1, 17, 18, false, 95, 11);
+  //maestroSerial.begin(9600);
+
+//testPololu();
+
+  maestro.setSpeed(servoPanPin, moveSpeed);
+  maestro.setSpeed(servoTiltPin, moveSpeed);
+
+  maestro.setAcceleration(servoPanPin, 1);
+  maestro.setAcceleration(servoTiltPin, 1);
+  int usServoValue=map(90,0,180,minUsServo,maxUsServo);
+  usServoValue*=4;
+  maestro.setTarget(servoPanPin, usServoValue);
+  maestro.setTarget(servoTiltPin, usServoValue);
+  delay(1000);
+  maestro.setAcceleration(servoPanPin, acceleration);
+  maestro.setAcceleration(servoTiltPin, acceleration);
 
   // Start serial
   Serial.begin(115200);
-  delay(1000);
-
-  for(int i=0;i<10;i++){
-    myservoPan.write(currentPan);
-    myservoTilt.write(currentTilt);
-    delay(100);
-  }
+  delay(200);
 
   // Connect to Wi-Fi network with SSID and password
   Serial.print("Setting AP (Access Point)…");
@@ -85,6 +108,8 @@ void setup() {
   
   server.begin();
 }
+
+
 
 void loop(){
   
@@ -153,6 +178,9 @@ void loop(){
             client.println("<h2 style=\"color:#ffffff;\">Speed: <span id=\"speedPos\"></span></h2>"); 
             client.println("<input type=\"range\" min=\"0\" max=\"100\" class=\"slider\" id=\"speedSlider\" onchange=\"speed(this.value)\" value=\""+String(moveSpeed)+"\"/>");
             
+            client.println("<h2 style=\"color:#ffffff;\">Acceleration: <span id=\"accelPos\"></span></h2>"); 
+            client.println("<input type=\"range\" min=\"0\" max=\"10\" class=\"slider\" id=\"accelSlider\" onchange=\"accel(this.value)\" value=\""+String(acceleration)+"\"/>");
+
             client.println("<br><br><br>");
             client.println("<input type=\"button\" class=\"button\" id=\"butSweepPan\" value=\"Sweep Pan\"/>");
             client.println("<input type=\"button\" class=\"button\" id=\"butSweepTilt\" value=\"Sweep Tilt\"/>");
@@ -172,6 +200,9 @@ void loop(){
             
             client.println("var slider3 = document.getElementById(\"speedSlider\");");
             client.println("var speedSlider = document.getElementById(\"speedPos\"); speedSlider.innerHTML = slider3.value;");
+
+            client.println("var slider4 = document.getElementById(\"accelSlider\");");
+            client.println("var accelSlider = document.getElementById(\"accelPos\"); accelSlider.innerHTML = slider4.value;");
             
             client.println("var buttSweepPan = document.getElementById(\"butSweepPan\");");
             client.println("var buttSweepTilt = document.getElementById(\"butSweepTilt\");");
@@ -181,6 +212,7 @@ void loop(){
             client.println("slider.oninput = function() { slider.value = this.value; servoP.innerHTML = this.value; }"); 
             client.println("slider2.oninput = function() { slider2.value = this.value; servoP2.innerHTML = this.value; }");
             client.println("slider3.oninput = function() { slider3.value = this.value; speedSlider.innerHTML = this.value; }");
+            client.println("slider4.oninput = function() { slider4.value = this.value; accelSlider.innerHTML = this.value; }");
 
             client.println("buttSweepPan.onclick = function() { state.innerHTML = \" Sweep Panning\"; $.get(\"/?value=X\"); {Connection: close};}");
             client.println("buttSweepTilt.onclick = function() { state.innerHTML = \" Sweep Tilting\"; $.get(\"/?value=Y\"); {Connection: close};}");
@@ -188,6 +220,10 @@ void loop(){
             client.println("$.ajaxSetup({timeout:1000}); function speed(pos) { ");
             client.println("$.get(\"/?value=\" +\"S\" +pos + \"&\"); {Connection: close};");
             client.println("state.innerHTML = \" Speed changed to \" + pos ;}");
+
+            client.println("function accel(pos) { ");
+            client.println("$.get(\"/?value=\" +\"A\" +pos + \"&\"); {Connection: close};");
+            client.println("state.innerHTML = \" Acceleration changed to \" + pos ;}");
 
             client.println("function servo(pos) { ");
             client.println("$.get(\"/?value=\" +\"P\"+pos + \"&\"); {Connection: close};");
@@ -219,20 +255,11 @@ void loop(){
                 Serial.println(valueString.toInt());
 
                 int tiltValue=valueString.toInt();
+                int usServoValue=map(tiltValue,0,180,minUsServo,maxUsServo);
+                usServoValue*=4;
+                maestro.setTarget(servoTiltPin, usServoValue);
 
-                if(tiltValue>currentTilt){
-                  for(int i=currentTilt;i<tiltValue;i++){
-                    myservoTilt.write(i);
-                    delay(moveSpeed);
-                    currentTilt=tiltValue;    
-                  }      
-                }else{
-                  for(int i=currentTilt;i>tiltValue;i--){
-                    myservoTilt.write(i);
-                    delay(moveSpeed);
-                    currentTilt=tiltValue;    
-                  }
-                }
+                currentTilt=tiltValue; 
               }else if(valueString.charAt(0)=='P'){
                 valueString=valueString.substring(1);
                 Serial.print("PAN:");
@@ -240,61 +267,45 @@ void loop(){
                 
                 int panValue=valueString.toInt();
                 panValue=180-panValue; // reverse direction
+                
+                int usServoValue=map(panValue,0,180,minUsServo,maxUsServo);
+                usServoValue*=4;
+                maestro.setTarget(servoPanPin, usServoValue);
 
-                if(panValue>currentPan){
-                  for(int i=currentPan;i<panValue;i++){
-                    myservoPan.write(i);
-                    delay(moveSpeed);
-                    currentPan=panValue;    
-                  }      
-                }else{
-                  for(int i=currentPan;i>panValue;i--){
-                    myservoPan.write(i);
-                    delay(moveSpeed);
-                    currentPan=panValue;    
-                  }
-                }              
+                currentPan=usServoValue;
+                            
               }else if(valueString.charAt(0)=='S'){
                 valueString=valueString.substring(1);
                 Serial.print("SPEED:");
                 moveSpeed=valueString.toInt();
+                maestro.setSpeed(servoPanPin, moveSpeed);
+                maestro.setSpeed(servoTiltPin, moveSpeed);
                 Serial.println(moveSpeed);
               }else if(valueString.charAt(0)=='X'){
-                Serial.println("Sweep Panning Started");
-
-                for(int i=currentPan;i<maxPanning;i++){
-                  myservoPan.write(i);
-                  delay(moveSpeed);
+                
+                if(!panSweeping){
+                  panSweeping=true;
+                  Serial.println("Sweep Panning Finished");
+                }else{
+                  panSweeping=false;
+                  Serial.println("Sweep Panning Started");  
                 }
-
-                for(int i=maxPanning;i>minPanning;i--){
-                  myservoPan.write(i);
-                  delay(moveSpeed);
-                }
-
-                for(int i=minPanning;i<currentPan;i++){
-                  myservoPan.write(i);
-                  delay(moveSpeed);
-                }
-                Serial.println("Sweep Panning Finished");
+                
               }else if(valueString.charAt(0)=='Y'){
-                Serial.println("Sweep Tilting Started");
-
-                for(int i=currentTilt;i<maxTilting;i++){
-                  myservoTilt.write(i);
-                  delay(moveSpeed);
-                }
-
-                for(int i=maxTilting;i>minTilting;i--){
-                  myservoTilt.write(i);
-                  delay(moveSpeed);
-                }
-
-                for(int i=minTilting;i<currentTilt;i++){
-                  myservoTilt.write(i);
-                  delay(moveSpeed);
-                }
-                Serial.println("Sweep Tilting Finished");
+                if(!tiltSweeping){
+                  tiltSweeping=true;
+                  Serial.println("Tilt Panning Finished");
+                }else{
+                  tiltSweeping=false;
+                  Serial.println("tilt Panning Started");  
+                } 
+              }else if(valueString.charAt(0)=='A'){
+                valueString=valueString.substring(1);
+                Serial.print("ACCEL:");
+                acceleration=valueString.toInt();
+                maestro.setAcceleration(servoPanPin, acceleration);
+                maestro.setAcceleration(servoTiltPin, acceleration);
+                Serial.println(acceleration);
               }
 
             }         
@@ -319,5 +330,79 @@ void loop(){
     client.stop();
     Serial.println("Client disconnected.");
     Serial.println("");
+
+  }
+
+  if(panSweeping){
+    if(!panningUp && millis()-timeTag>(100-moveSpeed)*75){
+      Serial.println("here");
+      maestro.setTarget(servoPanPin,maxUsServo*4);
+      panningUp=true;
+      timeTag=millis();
+    }else if (panningUp && millis()-timeTag>(100-moveSpeed)*75){
+      Serial.println("hara");
+      maestro.setTarget(servoPanPin,minUsServo*4);
+      panningUp=false;
+      timeTag=millis();
+    }
+  }
+
+  if(tiltSweeping){
+    if(!tiltingUp && millis()-timeTag2>(100-moveSpeed)*75){
+      Serial.println("here");
+      int usServoValue=map(maxTilting,0,180,minUsServo,maxUsServo);
+      usServoValue*=4;
+      maestro.setTarget(servoTiltPin,usServoValue);
+      tiltingUp=true;
+      timeTag2=millis();
+    }else if (tiltingUp && millis()-timeTag2>(100-moveSpeed)*75){
+      Serial.println("hara");
+      int usServoValue=map(minTilting,0,180,minUsServo,maxUsServo);
+      usServoValue*=4;
+      maestro.setTarget(servoTiltPin,usServoValue);
+      tiltingUp=false;
+      timeTag2=millis();
+    }
+  }
+
+
+
+}
+
+void testPololu(){
+  while(1){
+   maestro.setSpeed(0, 0);
+
+  /* setAcceleration takes channel number you want to limit and
+  the acceleration limit value from 0 to 255 in units of (1/4
+  microseconds)/(10 milliseconds) / (80 milliseconds).
+
+  A value of 0 corresponds to no acceleration limit. An
+  acceleration limit causes the speed of a servo to slowly ramp
+  up until it reaches the maximum speed, then to ramp down again
+  as the position approaches the target, resulting in relatively
+  smooth motion from one point to another. */
+  maestro.setAcceleration(0, 0);
+
+  // Set the target of channel 0 to 1500 us, and wait 2 seconds.
+  maestro.setTarget(0, 6000);
+  delay(2000);
+
+  // Configure channel 0 to move slowly and smoothly.
+  maestro.setSpeed(0, 10);
+  maestro.setAcceleration(0,127);
+
+  // Set the target of channel 0 to 1750 us, and wait 2 seconds.
+  maestro.setTarget(0, 7000);
+  delay(2000);
+
+  // Configure channel 0 to go more quickly and smoothly.
+  maestro.setSpeed(0, 20);
+  maestro.setAcceleration(0,5);
+
+  // Set the target of channel 0 to 1250 us, and wait 2 seconds.
+  maestro.setTarget(0, 5000);
+  delay(2000);
+
   }
 }

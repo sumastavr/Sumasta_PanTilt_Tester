@@ -74,6 +74,10 @@
   
   <h2 style="color:#ffffff;">Speed: <span id="speed"></span></h2>
   <input type="range" min="0" max="100" class="slider" id="speedSlider" onchange="speed(this.value)"/>
+
+  <h2 style="color:#ffffff;">Acceleration: <span id="accel"></span></h2>
+  <input type="range" min="0" max="100" class="slider" id="accelSlider" onchange="accel(this.value)"/>
+
   <br>
   <br>
   <br>
@@ -96,6 +100,10 @@
     var slider3 = document.getElementById("speedSlider");
     var speedLabel = document.getElementById("speed");
     speedLabel.innerHTML = slider3.value;
+
+    var slider4 = document.getElementById("accelSlider");
+    var accelLabel = document.getElementById("accel");
+    accelLabel.innerHTML = slider4.value;
     
     var buttSweepPan = document.getElementById("butSweepPan");
     var buttSweepTilt = document.getElementById("butSweepTilt");
@@ -118,6 +126,11 @@
       speedLabel.innerHTML = this.value;
     }
     
+    slider4.oninput = function() {
+      slider4.value = this.value;
+      accelLabel.innerHTML = this.value;
+    }
+
     buttSweepPan.onclick = function() {
       //servoP2.innerHTML = buttSweepPan.value;
       state.innerHTML = " Sweep Panning";
@@ -149,6 +162,12 @@
       $.get("/?value=" + pos + "&");
       {Connection: close};
       state.innerHTML = " Speed changed to " + pos ;
+    }
+
+    function accel(pos) {
+      $.get("/?value=" + pos + "&");
+      {Connection: close};
+      state.innerHTML = " Acceleration changed to " + pos ;
     }
     
   </script>
