@@ -39,7 +39,7 @@ const int usPerDegree = 180/(maxUsServo-minUsServo);
 const int midValuePan=1400; 
 
 int moveSpeed=30;
-int acceleration=0;
+int acceleration=1;
 
 boolean panSweeping=false;
 boolean tiltSweeping=false;
@@ -134,7 +134,7 @@ void loop(){
             
             // CSS - Modify as desired
             client.println("<style>body { text-align: center; font-family: \"Trebuchet MS\", Arial; margin-left:auto; margin-right:auto; }");
-            client.println(".slider { -webkit-appearance: none; width: 300px; height: 25px; border-radius: 10px; background: #ffffff; outline: none;  opacity: 0.9;-webkit-transition: .2s;  transition: opacity .2s;}");
+            client.println(".slider { -webkit-appearance: none; width: 300px; height: 15px; border-radius: 10px; background: #ffffff; outline: none;  opacity: 0.9;-webkit-transition: .2s;  transition: opacity .2s;}");
             client.println(".slider::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 35px; height: 35px; border-radius: 50%; background: #80ed99; cursor: pointer; }");
             client.println(".slider:hover{opacity: 1;}");
 
@@ -150,10 +150,17 @@ void loop(){
             
             // Sliders and Position display
             client.println("<h2 style=\"color:#ffffff;\">Pan: <span id=\"servoPos\"></span>&#176;</h2>"); 
+
+            client.println("<input style=\"padding: 5px 5px; margin-left: 1px; margin-right: 1px;\" type=\"button\" class=\"button\" id=\"decrPan\" value=\"--\"/>");
             client.println("<input type=\"range\" min=\"0\" max=\"180\" class=\"slider\" id=\"servoSlider\" onchange=\"servo(this.value)\" value=\""+valueString+"\"/>");            
+            client.println("<input style=\"padding: 5px 5px; margin-left: 1px; margin-right: 1px;\" type=\"button\" class=\"button\" id=\"incrPan\" value=\"+\"/>");
+
             client.println("<h2 style=\"color:#ffffff;\">Tilt: <span id=\"servoPos2\"></span>&#176;</h2>"); 
+
+            client.println("<input style=\"padding: 5px 5px; margin-left: 1px; margin-right: 1px;\" type=\"button\" class=\"button\" id=\"decrTilt\" value=\"--\"/>");
             client.println("<input type=\"range\" min=\""+ String(minTilting)+"\" max=\""+String(maxTilting)+"\" class=\"slider\" id=\"servoSlider2\" onchange=\"servo2(this.value)\" value=\""+valueString+"\"/>");
-            
+            client.println("<input style=\"padding: 5px 5px; margin-left: 1px; margin-right: 1px;\" type=\"button\" class=\"button\" id=\"incrTilt\" value=\"+\"/>");
+
             client.println("<h2 style=\"color:#ffffff;\">Speed: <span id=\"speedPos\"></span></h2>"); 
             client.println("<input type=\"range\" min=\"0\" max=\"100\" class=\"slider\" id=\"speedSlider\" onchange=\"speed(this.value)\" value=\""+String(moveSpeed)+"\"/>");
             
@@ -188,6 +195,12 @@ void loop(){
             client.println("var state = document.getElementById(\"status\");");
             client.println("state.innerHTML = \" Ready\";");
 
+            client.println("var buttIncrPan = document.getElementById(\"incrPan\");");
+            client.println("var buttDecrPan = document.getElementById(\"decrPan\");");
+
+            client.println("var buttIncrTilt = document.getElementById(\"incrTilt\");");
+            client.println("var buttDecrTilt = document.getElementById(\"decrTilt\");");
+
             client.println("slider.oninput = function() { slider.value = this.value; servoP.innerHTML = this.value; }"); 
             client.println("slider2.oninput = function() { slider2.value = this.value; servoP2.innerHTML = this.value; }");
             client.println("slider3.oninput = function() { slider3.value = this.value; speedSlider.innerHTML = this.value; }");
@@ -195,6 +208,9 @@ void loop(){
 
             client.println("buttSweepPan.onclick = function() { state.innerHTML = \" Sweep Panning\"; $.get(\"/?value=X\"); {Connection: close};}");
             client.println("buttSweepTilt.onclick = function() { state.innerHTML = \" Sweep Tilting\"; $.get(\"/?value=Y\"); {Connection: close};}");
+
+            client.println("buttIncrPan.onclick = function() { state.innerHTML = \" Increment Panning 1 Degree\"; slider.value = parseInt(slider.value)+1; servoP.innerHTML = slider.value; $.get(\"/?value=I\"); {Connection: close};}");
+            client.println("buttDecrPan.onclick = function() { state.innerHTML = \" Decrement Panning 1 Degree\"; slider.value = parseInt(slider.value)-1; servoP.innerHTML = slider.value; $.get(\"/?value=D\"); {Connection: close};}");
 
             client.println("$.ajaxSetup({timeout:1000}); function speed(pos) { ");
             client.println("$.get(\"/?value=\" +\"S\" +pos + \"&\"); {Connection: close};");
@@ -251,7 +267,7 @@ void loop(){
                 usServoValue*=4;
                 maestro.setTarget(servoPanPin, usServoValue);
 
-                currentPan=usServoValue;
+                currentPan=panValue;
                             
               }else if(valueString.charAt(0)=='S'){
                 valueString=valueString.substring(1);
@@ -285,8 +301,22 @@ void loop(){
                 maestro.setAcceleration(servoPanPin, acceleration);
                 maestro.setAcceleration(servoTiltPin, acceleration);
                 Serial.println(acceleration);
-              }
+              }else if(valueString.charAt(0)=='I'){   
 
+                Serial.print("PAN:");               
+                currentPan++;
+                Serial.println(currentPan);
+                int panValue=180-currentPan; // reverse direction
+                               
+                maestro.setTarget(servoPanPin, getUsServo(currentPan));
+              }else if(valueString.charAt(0)=='D'){           
+
+                Serial.print("PAN:");              
+                currentPan--;
+                Serial.println(currentPan);
+                int panValue=180-currentPan; // reverse direction
+                maestro.setTarget(servoPanPin, getUsServo(currentPan));
+              }
             }         
             // The HTTP response ends with another blank line
             client.println();
