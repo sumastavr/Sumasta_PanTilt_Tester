@@ -307,15 +307,15 @@ void loop(){
                 currentPan++;
                 Serial.println(currentPan);
                 int panValue=180-currentPan; // reverse direction
-                               
-                maestro.setTarget(servoPanPin, getUsServo(currentPan));
+                moveFast(true,currentPan);
+
               }else if(valueString.charAt(0)=='D'){           
 
                 Serial.print("PAN:");              
                 currentPan--;
                 Serial.println(currentPan);
                 int panValue=180-currentPan; // reverse direction
-                maestro.setTarget(servoPanPin, getUsServo(currentPan));
+                moveFast(true,currentPan);
               }
             }         
             // The HTTP response ends with another blank line
@@ -439,4 +439,23 @@ int getUsServo(int targetAngle){
   int usServoValue=map(targetAngle,0,180,minUsServo,maxUsServo);
   usServoValue*=4;
   return usServoValue;
+}
+
+void moveFast(boolean axis, int value){
+
+  maestro.setSpeed(servoPanPin, 0);
+  maestro.setSpeed(servoTiltPin, 0);
+  maestro.setAcceleration(servoPanPin, 0);
+  maestro.setAcceleration(servoTiltPin, 0);
+
+  if(axis){
+    maestro.setTarget(servoPanPin,getUsServo(value));
+  }else{
+    maestro.setTarget(servoTiltPin,getUsServo(value));
+  }
+
+  maestro.setSpeed(servoPanPin, moveSpeed);
+  maestro.setSpeed(servoTiltPin, moveSpeed);
+  maestro.setAcceleration(servoPanPin, acceleration);
+  maestro.setAcceleration(servoTiltPin, acceleration);
 }
