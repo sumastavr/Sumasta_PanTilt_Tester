@@ -2,7 +2,7 @@
 
 // Function prototype
 void initServo();
-int getUsServo(int targetAngle);
+int getUsServo(boolean axis, int targetAngle);
 int getServoDelay();
 void moveFast(boolean axis, int value);
 

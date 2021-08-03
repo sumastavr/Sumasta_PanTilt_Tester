@@ -212,6 +212,9 @@ void loop(){
             client.println("buttIncrPan.onclick = function() { state.innerHTML = \" Increment Panning 1 Degree\"; slider.value = parseInt(slider.value)+1; servoP.innerHTML = slider.value; $.get(\"/?value=I\"); {Connection: close};}");
             client.println("buttDecrPan.onclick = function() { state.innerHTML = \" Decrement Panning 1 Degree\"; slider.value = parseInt(slider.value)-1; servoP.innerHTML = slider.value; $.get(\"/?value=D\"); {Connection: close};}");
 
+            client.println("buttIncrTilt.onclick = function() { state.innerHTML = \" Increment Tilting 1 Degree\"; slider2.value = parseInt(slider2.value)+1; servoP2.innerHTML = slider2.value; $.get(\"/?value=J\"); {Connection: close};}");
+            client.println("buttDecrTilt.onclick = function() { state.innerHTML = \" Decrement Tilting 1 Degree\"; slider2.value = parseInt(slider2.value)-1; servoP2.innerHTML = slider2.value; $.get(\"/?value=E\"); {Connection: close};}");
+
             client.println("$.ajaxSetup({timeout:1000}); function speed(pos) { ");
             client.println("$.get(\"/?value=\" +\"S\" +pos + \"&\"); {Connection: close};");
             client.println("state.innerHTML = \" Speed changed to \" + pos ;}");
@@ -307,7 +310,7 @@ void loop(){
                 currentPan++;
                 Serial.println(currentPan);
                 int panValue=180-currentPan; // reverse direction
-                moveFast(true,currentPan);
+                moveFast(true,panValue);
 
               }else if(valueString.charAt(0)=='D'){           
 
@@ -315,8 +318,27 @@ void loop(){
                 currentPan--;
                 Serial.println(currentPan);
                 int panValue=180-currentPan; // reverse direction
-                moveFast(true,currentPan);
+                moveFast(true,panValue);
+
+              }else if(valueString.charAt(0)=='J'){   
+
+                Serial.print("TILT:");               
+                currentTilt++;
+                Serial.println(currentTilt);
+                //int tiltValue=180-currentTilt; // reverse direction
+                moveFast(false,currentTilt);
+
+              }else if(valueString.charAt(0)=='E'){           
+
+                Serial.print("TILT:");              
+                currentTilt--;
+                Serial.println(currentTilt);
+                //int tiltValue=180-currentTilt; // reverse direction
+                moveFast(false,currentTilt);
+
               }
+
+
             }         
             // The HTTP response ends with another blank line
             client.println();
@@ -420,8 +442,8 @@ void initServo(){
   maestro.setAcceleration(servoPanPin, 1);
   maestro.setAcceleration(servoTiltPin, 1);
 
-  maestro.setTarget(servoPanPin, getUsServo(90));
-  maestro.setTarget(servoTiltPin, getUsServo(90));
+  maestro.setTarget(servoPanPin, getUsServo(true,90));
+  maestro.setTarget(servoTiltPin, getUsServo(false,90));
 
   delay(3000);
 
@@ -435,10 +457,16 @@ int getServoDelay(){
   return 0;
 }
 
-int getUsServo(int targetAngle){
-  int usServoValue=map(targetAngle,0,180,minUsServo,maxUsServo);
-  usServoValue*=4;
-  return usServoValue;
+int getUsServo(boolean axis, int targetAngle){
+  if(axis){
+    int usServoValue=map(targetAngle,0,180,minUsServo,maxUsServo);
+    usServoValue*=4;
+    return usServoValue;
+  }else{
+    int usServoValue=map(targetAngle,0,180,minUsServo,maxUsServo);
+    usServoValue*=4;
+    return usServoValue;
+  }
 }
 
 void moveFast(boolean axis, int value){
@@ -449,9 +477,9 @@ void moveFast(boolean axis, int value){
   maestro.setAcceleration(servoTiltPin, 0);
 
   if(axis){
-    maestro.setTarget(servoPanPin,getUsServo(value));
+    maestro.setTarget(servoPanPin,getUsServo(axis, value));
   }else{
-    maestro.setTarget(servoTiltPin,getUsServo(value));
+    maestro.setTarget(servoTiltPin,getUsServo(axis, value));
   }
 
   maestro.setSpeed(servoPanPin, moveSpeed);
