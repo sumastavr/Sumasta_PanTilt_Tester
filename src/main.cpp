@@ -174,6 +174,8 @@ void loop(){
             
             client.println("<br><br>");
             client.println("<h2 style=\"color:#ffffff;\">Status: <span id=\"status\"></span></h2>");
+            client.println("<br>");
+            client.println("<img src=\"https://db3pap001files.storage.live.com/y4mDFHUaxGvLkQBbyCLbdokPwavAAHI8GVyjhvr9ditBcgIjP7XsMlDl2gsntGw-FsNoqOTsKKLu4ciou3--_10Js5ZDg3qByGKp2QBanaYHehf2WLmAClbAn8hcwvGT0xE9Hy6jGCArQPiV6w0ta41hJp3-wSLeBfku8HNlNPA6OfruX_I_BYO5rYMzntqOZxQ?width=256&height=36&cropmode=none\" width=\"129\" height=\"18\" />");
             client.println("<h2 style=\"color:#80ed99; font-size: 15px;\">"+SWVersion+ "<span id=\"Versioning\"></span></h2>");
 
             // Javascript
