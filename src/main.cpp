@@ -307,18 +307,18 @@ void loop(){
               }else if(valueString.charAt(0)=='I'){   
 
                 Serial.print("PAN:");               
-                currentPan++;
+                currentPan--; //it's actually decrease because of the inverse logic
                 Serial.println(currentPan);
-                int panValue=180-currentPan; // reverse direction
-                moveFast(true,panValue);
+               // int panValue=180-currentPan; // reverse direction
+                moveFast(true,currentPan);
 
               }else if(valueString.charAt(0)=='D'){           
 
                 Serial.print("PAN:");              
-                currentPan--;
+                currentPan++; //it's actually decrease because of the inverse logic
                 Serial.println(currentPan);
-                int panValue=180-currentPan; // reverse direction
-                moveFast(true,panValue);
+                //int panValue=180-currentPan; // reverse direction
+                moveFast(true,currentPan);
 
               }else if(valueString.charAt(0)=='J'){   
 
