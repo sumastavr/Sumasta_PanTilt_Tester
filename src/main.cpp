@@ -32,7 +32,7 @@ static const int maxTilting = 155;
 static const int minPanning = 0;
 static const int maxPanning = 180;
 
-const int maxUsServo=2300;
+const int maxUsServo=2500;
 const int minUsServo=500;
 
 const int usPerDegree = 180/(maxUsServo-minUsServo);
